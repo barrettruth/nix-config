@@ -1,0 +1,118 @@
+#!/bin/sh
+
+spawn_or_focus() {
+  name="$1"
+  cmd="$2"
+
+  if tmux list-windows -F '#{window_name}' | grep -Fx "$name" >/dev/null; then
+    tmux select-window -t "${name}"
+  else
+    if [ -n "$cmd" ]; then
+      tmux new-window -c '#{pane_current_path}' -n "${name}" "$cmd"
+    else
+      tmux new-window -c '#{pane_current_path}' -n "${name}"
+    fi
+  fi
+}
+
+case "$1" in
+bar)
+  [ "$2" ] || exit
+  mouse=""
+  if [ "$(tmux show-options | grep mouse | awk '{ print $NF }')" = "on" ]; then
+    mouse='[m]'
+  fi
+  set -f
+  keys="H J K L"
+  bar_content=""
+  i=0
+  total=$(tmux ls -F x | wc -l)
+  for line in $(tmux ls -F '#{session_id}:#{session_name}'); do
+    sid="${line%%:*}"
+    sname="${line#*:}"
+    if [ $i -lt 4 ]; then
+      key=$(echo "$keys" | cut -d' ' -f $((i + 1)))
+    elif [ $i -eq $((total - 1)) ]; then
+      key='$'
+    else
+      key='?'
+    fi
+    star=""
+    [ "$sname" = "$2" ] && star="*"
+    bar_content="$bar_content#[range=session|${sid}]$key:$sname$star#[norange] "
+    i=$((i + 1))
+  done
+  set +f
+  left='#[align=left list=on] #{W:#[range=window|#{window_index}]#{window_index}:#{window_name}#{window_flags}#[norange] }#[nolist]'
+  right="#[align=right]$mouse $bar_content"
+  tmux set -g 'status-format[0]' "$left$right"
+  ;;
+switch)
+  session="$(tmux ls -F '#S' | tail -n "+$(($2 + 1))" | head -1)"
+  tmux switch -t "$session"
+  ;;
+exec)
+  name="$(basename "$PWD")"
+  project="$(basename "$(dirname "$PWD")")/$name"
+
+  case "$project" in
+  */bmath)
+    cmd='cmake -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ctest --test-dir build --output-on-failure'
+    ;;
+  */ag)
+    cmd='cp -f autograder.py example && cd example && ./run_autograder'
+    ;;
+  */project-a-10)
+    cmd='. venv/bin/activate && python manage.py runserver'
+    ;;
+  */theCourseForum2)
+    cmd='docker compose up'
+    ;;
+  */atlas | */tinyground)
+    cmd='pnpm run dev'
+    ;;
+  */interview-prep)
+    cmd='pnpm run dev'
+    ;;
+  */neovim)
+    cmd='make'
+    ;;
+  */TestCppClient)
+    cmd='rm -f TestCppClientStatic && cmake -S . -B build/ && make && ./TestCppClientStatic'
+    ;;
+  sl/*)
+    cmd='make clean install && make clean'
+    [ "$name" = 'slock' ] && cmd="doas $cmd"
+    ;;
+  */barrettruth.com)
+    cmd='pnpm dev'
+    ;;
+  esac
+
+  echo " > $cmd" | sed "s|$HOME|~|g"
+  eval "$cmd"
+  ;;
+claude)
+  spawn_or_focus claude 'claude --chrome'
+  ;;
+nvim)
+  spawn_or_focus nvim 'nvim -c "lua require([[config.tmux]]).run([[nvim]])"'
+  ;;
+git)
+  pane_path=$(tmux display-message -p '#{pane_current_path}')
+  if ! git -C "$pane_path" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    tmux display-message "Not a git repository"
+  else
+    spawn_or_focus git 'nvim -c "lua require([[config.tmux]]).run([[git]])"'
+  fi
+  ;;
+run)
+  spawn_or_focus run 'nvim -c "lua require([[config.tmux]]).run([[run]])"'
+  ;;
+term)
+  spawn_or_focus term
+  ;;
+*)
+  tmux attach
+  ;;
+esac

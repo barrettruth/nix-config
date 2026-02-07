@@ -1,0 +1,57 @@
+{
+  description = "Barrett Ruth's Nix Configuration";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
+    neovim-nightly.url = "github:nix-community/neovim-nightly-overlay";
+    zen-browser.url = "github:0xc000022070/zen-browser-flake";
+  };
+
+  outputs = { nixpkgs, home-manager, nixos-hardware, neovim-nightly, zen-browser, ... }:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) [
+          "slack"
+          "claude-code"
+          "nvidia-x11"
+          "nvidia-settings"
+        ];
+        overlays = [ neovim-nightly.overlays.default ];
+      };
+    in {
+      nixosConfigurations.xps15 = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          nixos-hardware.nixosModules.dell-xps-15-9500-nvidia
+          ./hosts/xps15/configuration.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.barrett = import ./home/home.nix;
+            home-manager.extraSpecialArgs = {
+              inherit zen-browser system;
+            };
+          }
+        ];
+        specialArgs = {
+          inherit nixpkgs;
+        };
+      };
+
+      homeConfigurations.barrett = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        extraSpecialArgs = {
+          inherit zen-browser system;
+        };
+        modules = [ ./home/home.nix ];
+      };
+    };
+}

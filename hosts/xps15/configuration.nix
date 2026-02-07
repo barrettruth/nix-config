@@ -1,0 +1,104 @@
+{ pkgs, ... }:
+
+{
+  imports = [
+    ./hardware-configuration.nix
+  ];
+
+  boot.loader.grub = {
+    enable = true;
+    device = "nodev";
+    efiSupport = true;
+    useOSProber = true;
+    gfxmodeEfi = "1920x1080x32";
+    gfxpayloadEfi = "keep";
+  };
+  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.efi.efiSysMountPoint = "/boot/efi";
+  boot.kernelParams = [ "nvidia-drm.modeset=1" "ibt=off" "loglevel=3" "quiet" ];
+
+  networking.hostName = "xps15";
+  networking.wireless.iwd = {
+    enable = true;
+    settings = {
+      General.EnableNetworkConfiguration = true;
+      Settings.AutoConnect = true;
+    };
+  };
+
+  services.automatic-timezoned.enable = true;
+  i18n.defaultLocale = "en_US.UTF-8";
+
+  security.pam.services.hyprlock = {};
+
+  users.users.barrett = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "docker" "libvirt" "storage" "power" ];
+    shell = pkgs.zsh;
+  };
+
+  programs.zsh.enable = true;
+  programs.hyprland.enable = true;
+
+  hardware.nvidia = {
+    open = true;
+    modesetting.enable = true;
+    prime = {
+      offload.enable = true;
+      intelBusId = "PCI:0:2:0";
+      nvidiaBusId = "PCI:1:0:0";
+    };
+  };
+  hardware.graphics.enable = true;
+  hardware.bluetooth.enable = true;
+
+  services.keyd = {
+    enable = true;
+    keyboards.default = {
+      ids = [ "*" ];
+      settings = {
+        main = {
+          capslock = "overload(control, esc)";
+          leftcontrol = "capslock";
+          leftmeta = "A-x";
+          rightalt = "f13";
+        };
+      };
+    };
+  };
+
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    jack.enable = true;
+    pulse.enable = true;
+    wireplumber.enable = true;
+  };
+
+  services.openssh.enable = true;
+
+  virtualisation.docker.enable = true;
+  virtualisation.libvirtd.enable = true;
+  programs.virt-manager.enable = true;
+
+  xdg.portal = {
+    enable = true;
+    extraPortals = with pkgs; [
+      xdg-desktop-portal-gtk
+      xdg-desktop-portal-hyprland
+    ];
+  };
+
+  environment.systemPackages = with pkgs; [
+    vim
+    wget
+    git
+    ntfs3g
+    efibootmgr
+    dmidecode
+  ];
+
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  system.stateVersion = "24.11";
+}
