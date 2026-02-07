@@ -64,17 +64,7 @@ Reboot, mash F12 for boot menu, pick USB.
 
 You'll land in a root shell. Connect to WiFi:
 
-```sh
-systemctl start wpa_supplicant
-wpa_cli
-> add_network 0
-> set_network 0 ssid "YourSSID"
-> set_network 0 psk "YourPassword"
-> enable_network 0
-> quit
-```
-
-Or if you prefer `iwd` (available in the installer too):
+Prepare `iwd` (available in the installer too):
 
 ```sh
 iwctl
