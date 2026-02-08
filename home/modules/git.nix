@@ -1,4 +1,4 @@
-{ pkgs, config, ... }:
+{ lib, config, pkgs, ... }:
 
 {
   programs.git = {
@@ -34,6 +34,11 @@
       "result-*"
       ".claude/settings.local.json"
     ];
+
+    signing = {
+      key = "A6C96C9349D2FC81";
+      signByDefault = true;
+    };
 
     settings = {
       user = {
@@ -92,4 +97,67 @@
       prompt = "enabled";
     };
   };
+
+  programs.ssh = {
+    enable = true;
+    matchBlocks = {
+      "github.com" = {
+        identityFile = "~/.ssh/id_ed25519";
+      };
+      "git-server" = {
+        hostname = "git.barrettruth.com";
+        user = "ec2-user";
+        identityFile = "~/.ssh/git-keypair-old.pem";
+      };
+      "lightsail" = {
+        hostname = "52.87.124.139";
+        user = "ec2-user";
+        identityFile = "~/.ssh/git-keypair.pem";
+        extraOptions = {
+          SetEnv = "TERM=xterm-256color";
+          KexAlgorithms = "+curve25519-sha256";
+        };
+      };
+      "uva-portal" = {
+        hostname = "portal.cs.virginia.edu";
+        user = "jxa9ev";
+        identityFile = "~/.ssh/uva_key";
+      };
+      "uva-nvidia" = {
+        hostname = "grasshopper02.cs.virginia.edu";
+        user = "jxa9ev";
+        proxyJump = "uva-portal";
+        identityFile = "~/.ssh/uva_key";
+      };
+    };
+  };
+
+  programs.gpg.enable = true;
+
+  services.gpg-agent = {
+    enable = true;
+    defaultCacheTtl = 3600;
+    maxCacheTtl = 7200;
+    pinentryPackage = pkgs.pinentry-curses;
+  };
+
+  home.activation.secretPermissions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ -d "${config.home.homeDirectory}/.ssh" ]; then
+      $DRY_RUN_CMD chmod 700 "${config.home.homeDirectory}/.ssh"
+      for f in "${config.home.homeDirectory}/.ssh/"*; do
+        [ -f "$f" ] || continue
+        [ -L "$f" ] && continue
+        case "$f" in
+          *.pub|*/known_hosts|*/known_hosts.old)
+            $DRY_RUN_CMD chmod 644 "$f" ;;
+          *)
+            $DRY_RUN_CMD chmod 600 "$f" ;;
+        esac
+      done
+    fi
+    if [ -d "${config.home.homeDirectory}/.gnupg" ]; then
+      $DRY_RUN_CMD find "${config.home.homeDirectory}/.gnupg" -type d -exec chmod 700 {} +
+      $DRY_RUN_CMD find "${config.home.homeDirectory}/.gnupg" -type f -exec chmod 600 {} +
+    fi
+  '';
 }

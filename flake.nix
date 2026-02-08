@@ -10,9 +10,13 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     neovim-nightly.url = "github:nix-community/neovim-nightly-overlay";
     zen-browser.url = "github:0xc000022070/zen-browser-flake";
+    fonts = {
+      url = "git+ssh://git@github.com/barrettruth/fonts.git";
+      flake = false;
+    };
   };
 
-  outputs = { nixpkgs, home-manager, nixos-hardware, neovim-nightly, zen-browser, ... }:
+  outputs = { nixpkgs, home-manager, nixos-hardware, neovim-nightly, zen-browser, fonts, ... }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
@@ -22,6 +26,7 @@
           "claude-code"
           "nvidia-x11"
           "nvidia-settings"
+          "apple_cursor"
         ];
         overlays = [ neovim-nightly.overlays.default ];
       };
@@ -37,7 +42,7 @@
             home-manager.useUserPackages = true;
             home-manager.users.barrett = import ./home/home.nix;
             home-manager.extraSpecialArgs = {
-              inherit zen-browser system;
+              inherit zen-browser fonts system;
             };
           }
         ];
@@ -49,7 +54,7 @@
       homeConfigurations.barrett = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         extraSpecialArgs = {
-          inherit zen-browser system;
+          inherit zen-browser fonts system;
         };
         modules = [ ./home/home.nix ];
       };

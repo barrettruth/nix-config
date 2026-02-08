@@ -1,4 +1,4 @@
-{ lib, config, ... }:
+{ lib, config, pkgs, fonts, ... }:
 
 let
   palettes = {
@@ -46,5 +46,17 @@ in {
     readOnly = true;
   };
 
-  config.colors = palettes.${config.theme};
+  config = {
+    colors = palettes.${config.theme};
+
+    home.pointerCursor = {
+      name = "macOS";
+      package = pkgs.apple-cursor;
+      size = 24;
+      gtk.enable = true;
+      x11.enable = true;
+    };
+
+    home.file.".local/share/fonts".source = fonts;
+  };
 }
