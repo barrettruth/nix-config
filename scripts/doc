@@ -1,11 +1,24 @@
 #!/bin/sh
 
+require() {
+  for cmd in "$@"; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+      echo "doc: missing dependency: $cmd" >&2
+      exit 1
+    }
+  done
+}
+
+require sioyek
+
 dir="$HOME/doc"
 test -d "$dir" || exit
 
 if [ "$XDG_SESSION_TYPE" = x11 ]; then
+  require dmenu
   picker() { dmenu -i -l 10 -p "Select file or folder: "; }
 else
+  require rofi
   picker() { rofi -dmenu -i -l 10 -p "Select file or folder"; }
 fi
 

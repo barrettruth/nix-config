@@ -27,9 +27,22 @@
   };
 
   services.automatic-timezoned.enable = true;
+  services.geoclue2.enable = true;
+  services.pcscd.enable = true;
   i18n.defaultLocale = "en_US.UTF-8";
 
   security.pam.services.hyprlock = {};
+
+  security.doas = {
+    enable = true;
+    extraRules = [{
+      groups = [ "wheel" ];
+      persist = true;
+      keepEnv = true;
+    }];
+  };
+
+  environment.binsh = "${pkgs.dash}/bin/dash";
 
   users.users.barrett = {
     isNormalUser = true;
@@ -37,7 +50,12 @@
     shell = pkgs.zsh;
   };
 
-  programs.zsh.enable = true;
+  programs.zsh = {
+    enable = true;
+    shellInit = ''
+      export ZDOTDIR="$HOME/.config/zsh"
+    '';
+  };
   programs.hyprland.enable = true;
 
   hardware.nvidia = {
@@ -93,6 +111,7 @@
     vim
     wget
     git
+    dash
     ntfs3g
     efibootmgr
     dmidecode

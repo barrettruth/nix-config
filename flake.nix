@@ -10,13 +10,14 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     neovim-nightly.url = "github:nix-community/neovim-nightly-overlay";
     zen-browser.url = "github:0xc000022070/zen-browser-flake";
+    claude-code.url = "github:ryoppippi/claude-code-overlay";
     fonts = {
       url = "git+ssh://git@github.com/barrettruth/fonts.git";
       flake = false;
     };
   };
 
-  outputs = { nixpkgs, home-manager, nixos-hardware, neovim-nightly, zen-browser, fonts, ... }:
+  outputs = { nixpkgs, home-manager, nixos-hardware, neovim-nightly, zen-browser, claude-code, fonts, ... }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
@@ -24,11 +25,15 @@
         config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) [
           "slack"
           "claude-code"
+          "claude"
           "nvidia-x11"
           "nvidia-settings"
           "apple_cursor"
         ];
-        overlays = [ neovim-nightly.overlays.default ];
+        overlays = [
+          neovim-nightly.overlays.default
+          claude-code.overlays.default
+        ];
       };
     in {
       nixosConfigurations.xps15 = nixpkgs.lib.nixosSystem {

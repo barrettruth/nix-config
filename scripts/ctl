@@ -1,21 +1,34 @@
 #!/bin/sh
 
+require() {
+  for cmd in "$@"; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+      echo "ctl: missing dependency: $cmd" >&2
+      exit 1
+    }
+  done
+}
+
 case "$1" in
 screenshot)
   dir="$HOME/img/ss"
   mkdir -p "$dir"
   file="$dir/$(openssl rand -hex 10)-$(date +'%Y-%m-%d_%H-%M-%S').png"
   if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+    require grim slurp wl-copy
     grim -g "$(slurp)" "$file" && wl-copy < "$file"
   else
+    require maim xclip
     maim -s "$file" && xclip -selection clipboard -t image/png -i "$file" &
   fi
   ;;
 ocr)
+  require tesseract
   dir="$HOME/img/ss"
   mkdir -p "$dir"
   file="$dir/$(openssl rand -hex 10)-$(date +'%Y-%m-%d_%H-%M-%S').png"
   if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+    require grim slurp wl-copy
     (
       region="$(slurp)"
       [ -n "$region" ] || exit 0
@@ -23,6 +36,7 @@ ocr)
       tesseract -l eng "$file" - 2>/dev/null | wl-copy
     ) </dev/null >/dev/null 2>&1 &
   else
+    require maim xclip
     (
       maim -s "$file" &&
       tesseract -l eng "$file" - 2>/dev/null | xclip -selection clipboard -in
@@ -58,6 +72,7 @@ keyboard)
   esac
   ;;
 audio)
+  require pactl
   case "$2" in
   out)
     sinks="$(pactl list short sinks | awk '{print $1": "$2}')"

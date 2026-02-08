@@ -323,7 +323,7 @@ Compare your 207 explicit Arch packages against what's in
   (or use devShells per-project)
 - **Dev tools**: cmake, ninja, gdb, valgrind, perf — add to HM or devShells
 - **CLI**: fastfetch, socat, rsync, bind (dig), time — add to HM packages
-- **AUR equivalents**: voxtype, pikaur (not needed), sioyek (already in HM),
+- **AUR equivalents**: pikaur (not needed), sioyek (already in HM),
   basedpyright, pistol, clipmenu (not needed on Wayland)
 
 ### Things you DON'T need on NixOS

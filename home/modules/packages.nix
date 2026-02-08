@@ -1,6 +1,7 @@
 { pkgs, lib, config, zen-browser, system, ... }:
 
 let
+  claude = true;
   zen = true;
   sioyek = true;
   vesktop = true;
@@ -16,11 +17,24 @@ in {
     signal-desktop
     slack
     bitwarden-desktop
-    claude-code
   ]
+  ++ lib.optionals claude [ claude-code ]
   ++ lib.optionals zen [ zen-browser.packages.${system}.default ]
-  ++ lib.optionals sioyek [ pkgs.sioyek ]
-  ++ lib.optionals vesktop [ pkgs.vesktop ];
+  ++ lib.optionals sioyek [ sioyek ]
+  ++ lib.optionals vesktop [ vesktop ];
+
+  xdg.configFile."claude/settings.json" = lib.mkIf claude {
+    text = builtins.toJSON {
+      permissions.defaultMode = "acceptEdits";
+      network_access = true;
+      allowed_domains = [
+        "github.com"
+        "raw.githubusercontent.com"
+        "api.github.com"
+      ];
+      tools.web_fetch = true;
+    };
+  };
 
   home.activation.linkZenProfile = lib.mkIf zen (
     lib.hm.dag.entryAfter [ "writeBoundary" ] ''

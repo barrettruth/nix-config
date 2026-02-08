@@ -15,6 +15,8 @@ in {
     libnotify
     brightnessctl
     pamixer
+    socat
+    (python3.withPackages (ps: [ ps.pillow ]))
     xorg.xinit
     xorg.xmodmap
     xorg.xrdb

@@ -4,6 +4,7 @@ let
   isNixOS = builtins.pathExists /etc/NIXOS;
 in {
   imports = [
+    ./modules/bootstrap.nix
     ./modules/theme.nix
     ./modules/shell.nix
     ./modules/terminal.nix
@@ -31,5 +32,23 @@ in {
     };
 
     programs.home-manager.enable = true;
+
+    systemd.user.services.nix-flake-update = {
+      Unit.Description = "Update nix flake inputs";
+      Service = {
+        Type = "oneshot";
+        WorkingDirectory = "%h/nix-config";
+        ExecStart = "${pkgs.nix}/bin/nix flake update";
+      };
+    };
+
+    systemd.user.timers.nix-flake-update = {
+      Unit.Description = "Auto-update nix flake inputs";
+      Timer = {
+        OnCalendar = "daily";
+        Persistent = true;
+      };
+      Install.WantedBy = [ "timers.target" ];
+    };
   };
 }

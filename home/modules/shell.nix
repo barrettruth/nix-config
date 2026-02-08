@@ -136,6 +136,10 @@ in {
     '';
   };
 
+  home.file.".zshenv".text = ''
+    export THEME="${config.theme}"
+  '';
+
   programs.zsh = {
     enable = true;
     dotDir = "${config.xdg.configHome}/zsh";
@@ -170,6 +174,7 @@ in {
 
     initContent = ''
       export GPG_TTY=$(tty)
+      gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1 || true
       export THEME="''${THEME:-${config.theme}}"
 
       setopt auto_cd
@@ -315,15 +320,16 @@ in {
       set -g default-shell "$SHELL"
 
       set -g renumber-windows on
+      setw -g automatic-rename off
       set -g pane-base-index 1
 
       set -g status-position bottom
       set -g status-interval 5
-      set -g status-left ' '
-      set -g status-right ""
-      set-hook -g session-created 'run "mux bar #S"'
-      set-hook -g session-closed 'run "mux bar #S"'
-      set-hook -g client-session-changed 'run "mux bar #S"'
+      set -g @c ','
+      set-hook -g session-created 'run "mux bar"'
+      set-hook -g session-closed 'run "mux bar"'
+      set-hook -g client-session-changed 'run "mux bar"'
+      set-hook -g pane-mode-changed 'refresh-client -S'
 
       set -g status-bg '${c.bg}'
       set -g status-fg '${c.fg}'
@@ -344,9 +350,10 @@ in {
       unbind Up; bind k selectp -U
       unbind Right; bind l selectp -R
 
-      unbind m; bind m choose-tree -Z "join-pane -t '%%'"
-      unbind n; bind n break-pane
-      unbind p; bind p choose-tree -Z "join-pane -s '%%'"
+      unbind :; bind : display-popup -E 'mux cmd'
+      unbind s; bind s display-popup -E 'mux pick-session'
+      unbind w; bind w display-popup -E 'mux pick-window'
+      unbind p; bind p display-popup -E 'mux pick-pane'
 
       bind -r Left resizep -L 5
       bind -r Right resizep -R 5
@@ -362,29 +369,32 @@ in {
       unbind ?; bind ? if -F '#{pane_in_mode}' 'send q' 'copy-mode \; send ?'
 
       bind -T copy-mode-vi v send -X begin-selection
-      bind -T copy-mode-vi y send -X copy-pipe-and-cancel 'xclip -in -sel c'
+      bind -T copy-mode-vi y send -X copy-pipe-and-cancel 'test -n "$WAYLAND_DISPLAY" && wl-copy || xclip -in -sel c'
 
-      unbind C-b; bind C-b set status
-      unbind C-m; bind C-m set mouse\; run 'mux bar #S'
+      unbind b; bind b set status\; refresh -S
+      unbind m; bind m set -g mouse\; run 'mux bar'\; refresh -S
 
-      unbind e; bind e neww -n 'tmux.conf' "sh -c 'nvim $XDG_CONFIG_HOME/tmux/tmux.conf && tmux source $XDG_CONFIG_HOME/tmux/tmux.conf'"
+      unbind ^; bind ^ last-window
 
-      unbind H; bind H run 'mux switch 0'\; run 'mux bar #S'
-      unbind J; bind J run 'mux switch 1'\; run 'mux bar #S'
-      unbind K; bind K run 'mux switch 2'\; run 'mux bar #S'
-      unbind L; bind L run 'mux switch 3'\; run 'mux bar #S'
-      unbind \$; bind \$ run 'mux switch 4'\; run 'mux bar #S'
+      unbind e; bind e neww -n 'tmux.conf' "sh -c 'nvim $XDG_CONFIG_HOME/tmux/tmux.conf; tmux source $XDG_CONFIG_HOME/tmux/tmux.conf'"
+
+      unbind H; bind H run 'mux switch 0'\; refresh -S
+      unbind J; bind J run 'mux switch 1'\; refresh -S
+      unbind K; bind K run 'mux switch 2'\; refresh -S
+      unbind L; bind L run 'mux switch 3'\; refresh -S
+      unbind \$; bind \$ run 'mux switch 4'\; refresh -S
 
       unbind Tab; bind Tab switchc -l
 
       set-hook -g client-light-theme 'source ${config.xdg.configHome}/tmux/themes/daylight.conf'
       set-hook -g client-dark-theme  'source ${config.xdg.configHome}/tmux/themes/midnight.conf'
 
-      unbind N; bind N run 'mux nvim'
-      unbind C; bind C run 'mux claude'
+      unbind A; bind A run 'mux ai'
+      unbind C; bind C run 'mux code'
       unbind R; bind R run 'mux run'
       unbind T; bind T run 'mux term'
       unbind G; bind G run 'mux git'
+      unbind M; bind M run 'mux misc'
 
       set -g lock-after-time 300
       set -g lock-command "pipes -p 2"
@@ -402,6 +412,9 @@ in {
     set -g window-status-activity-style fg='#7aa2f7',bg='#121212',bold
     set -g pane-border-style fg='#3d3d3d'
     set -g pane-active-border-style fg='#e0e0e0'
+    set -g copy-mode-selection-style fg='#121212',bg='yellow'
+    set -g copy-mode-current-match-style fg='#121212',bg='yellow'
+    set -g copy-mode-match-style 'reverse'
   '';
 
   xdg.configFile."tmux/themes/daylight.conf".text = ''
@@ -413,6 +426,9 @@ in {
     set -g window-status-activity-style fg='#3b5bdb',bg='#f5f5f5',bold
     set -g pane-border-style fg='#e8e8e8'
     set -g pane-active-border-style fg='#1a1a1a'
+    set -g copy-mode-selection-style fg='#f5f5f5',bg='yellow'
+    set -g copy-mode-current-match-style fg='#f5f5f5',bg='yellow'
+    set -g copy-mode-match-style 'reverse'
   '';
 
   programs.lf = {

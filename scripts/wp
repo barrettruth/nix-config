@@ -5,7 +5,11 @@ import random
 import subprocess
 import sys
 
-from PIL import Image, ImageDraw
+try:
+    from PIL import Image, ImageDraw
+except ImportError:
+    print("wp: missing dependency: pillow (pip install pillow)", file=sys.stderr)
+    sys.exit(1)
 
 HOME = os.environ["HOME"]
 DIR = f"{HOME}/img/screen"

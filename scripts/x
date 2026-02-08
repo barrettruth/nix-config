@@ -1,9 +1,19 @@
 #!/bin/sh
 
+require() {
+  for cmd in "$@"; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+      echo "x: missing dependency: $cmd" >&2
+      exit 1
+    }
+  done
+}
+
 cmd="$1"; shift
 
 case "$cmd" in
 setup)
+  require xrdb xset xmodmap xss-lock slock
   xrdb -merge "$XDG_CONFIG_HOME"/X11/xresources."$THEME"
   xset b off
   xset m 0
@@ -14,6 +24,7 @@ setup)
   xss-lock -- slock &
   ;;
 bg)
+  require xrandr feh
   randr="$(xrandr | rg ' connected ')"
   mons="$(echo "$randr" | wc -l)"
   wpdir="$HOME"/img/wp
@@ -31,6 +42,7 @@ bg)
   eval "$cmd"
   ;;
 mon)
+  require xrandr
   mons="$(xrandr | rg --no-config ' connected ' | awk '{ print $1 }')"
 
   one="$(echo "$mons" | head -n 1)"
