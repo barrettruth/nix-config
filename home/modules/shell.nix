@@ -213,7 +213,7 @@ in {
       fzf-config-widget() {
           file="$(fd --type file --hidden . ~/.config | sed "s|$HOME|~|g" | fzf)"
           [ -n "$file" ] || { zle reset-prompt; return; }
-          file="${file/#\~/$HOME}"
+          file="''${file/#\~/$HOME}"
           BUFFER="nvim $file"
           zle accept-line
       }
@@ -319,7 +319,7 @@ in {
       set -g status-position bottom
       set -g status-interval 5
       set -g status-left ' '
-      set -g status-right ''
+      set -g status-right ""
       set-hook -g session-created 'run "mux bar #S"'
       set-hook -g session-closed 'run "mux bar #S"'
       set-hook -g client-session-changed 'run "mux bar #S"'
