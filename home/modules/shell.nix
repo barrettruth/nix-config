@@ -169,6 +169,7 @@ in {
     '';
 
     initContent = ''
+      export GPG_TTY=$(tty)
       export THEME="''${THEME:-${config.theme}}"
 
       setopt auto_cd

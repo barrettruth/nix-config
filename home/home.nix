@@ -25,7 +25,9 @@ in {
     news.display = "silent";
 
     home.file.".local/bin/scripts" = {
-      source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/scripts";
+      source = ../scripts;
+      recursive = true;
+      executable = true;
     };
 
     programs.home-manager.enable = true;

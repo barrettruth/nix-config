@@ -100,7 +100,11 @@
 
   programs.ssh = {
     enable = true;
+    enableDefaultConfig = false;
     matchBlocks = {
+      "*" = {
+        addKeysToAgent = "yes";
+      };
       "github.com" = {
         identityFile = "~/.ssh/id_ed25519";
       };
@@ -138,7 +142,7 @@
     enable = true;
     defaultCacheTtl = 3600;
     maxCacheTtl = 7200;
-    pinentryPackage = pkgs.pinentry-curses;
+    pinentry.package = pkgs.pinentry-curses;
   };
 
   home.activation.secretPermissions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
