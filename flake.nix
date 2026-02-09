@@ -32,6 +32,8 @@
         ];
       };
     in {
+      formatter.${system} = pkgs.nixfmt;
+
       nixosConfigurations.xps15 = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
