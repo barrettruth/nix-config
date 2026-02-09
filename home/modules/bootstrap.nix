@@ -14,7 +14,7 @@ in {
 
   home.activation.cloneNixConfig = lib.hm.dag.entryAfter [ "createDirectories" ] ''
     if [ ! -d "${repoDir}" ]; then
-      $DRY_RUN_CMD ${pkgs.git}/bin/git clone git@github.com:barrettruth/nix-config.git "${repoDir}" || true
+      $DRY_RUN_CMD ${pkgs.git}/bin/git clone https://github.com/barrettruth/nix-config.git "${repoDir}"
     fi
   '';
 

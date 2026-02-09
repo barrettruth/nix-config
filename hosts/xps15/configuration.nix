@@ -107,6 +107,8 @@
     ];
   };
 
+  security.sudo.enable = true;
+
   environment.systemPackages = with pkgs; [
     vim
     wget

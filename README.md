@@ -1,116 +1,82 @@
-# NixOS Migration Guide
+# nix-config
 
-## Before you start
+NixOS and home-manager configuration for a Dell XPS 15 9500.
 
-Things to have ready:
+## Disaster recovery
 
-- A USB stick (4GB+)
-- WiFi password
-- This guide on your phone
+If you lose your laptop, you need exactly two things from memory:
 
-Your nix-config already has both `homeConfigurations.barrett` (standalone
-home-manager, what you use now on Arch) and `nixosConfigurations.xps15` (full
-NixOS). The flake, configuration.nix, and all home-manager modules are ready.
-The only file you're missing is `hosts/xps15/hardware-configuration.nix`, which
-gets generated during install.
+1. AWS root credentials (email + password) — gets you into the console,
+   which gets you to Lightsail, which means Vaultwarden at
+   git.barrettruth.com is reachable
+2. Vaultwarden master password — unlocks everything else (GitHub, email,
+   etc.)
 
-## 1. Prep on Arch (before wiping)
+If you have 2FA on either of these via an authenticator app, you also
+need recovery codes. Print them. Store them somewhere physical that
+isn't your laptop.
 
-### Back up
+All SSH keys, GPG keys, and .pem files are stored as attachments in
+Vaultwarden. Restoring them is step 10 below.
 
-```sh
-# Secrets
-cp -r ~/.gnupg /tmp/gnupg-backup
-cp -r ~/.ssh /tmp/ssh-backup
-cp -r ~/.local/share/pass /tmp/pass-backup
+### Before you migrate: upload keys to Vaultwarden
 
-# Fonts (not in nixpkgs)
-tar cf /tmp/fonts.tar ~/.local/share/fonts
+Do this now, while you still have a working machine. Create a vault
+entry (e.g. "keys") and attach:
 
-# Browser profile
-tar cf /tmp/zen.tar ~/.zen
-
-# Any uncommitted work
-cd ~/dev && git status  # check each repo
-
-# Wallpapers and lock screen images
-tar cf /tmp/img.tar ~/img
-```
-
-Copy all of `/tmp/*-backup` and `/tmp/*.tar` to the USB stick or another
-machine.
-
-### Push this repo
+- `~/.ssh/id_ed25519`
+- `~/.ssh/id_ed25519.pub`
+- `~/.ssh/git-keypair.pem`
+- `~/.ssh/git-keypair-old.pem`
+- `~/.ssh/uva_key` (if still needed)
+- GPG private key (export first):
 
 ```sh
-cd ~/nix-config  # (as barrett, or sg barrett)
-git push
+gpg --export-secret-keys --armor A6C96C9349D2FC81 > /tmp/gpg-private.asc
 ```
 
-### Download NixOS ISO
+Attach `/tmp/gpg-private.asc`, then delete the temp file.
 
-Grab the minimal ISO from https://nixos.org/download — you want the "Minimal
-ISO image" (not graphical), x86_64.
+By storing the same keys, the key IDs in `git.nix` stay valid, GitHub
+doesn't need updating, and git signing works immediately after restore.
 
-Flash it:
+## Manual steps (fresh install from zero)
+
+### 1. Flash the installer
+
+Download the NixOS minimal ISO from https://nixos.org/download (x86_64).
 
 ```sh
-sudo dd bs=4M if=nixos-minimal-*.iso of=/dev/sdX status=progress oflag=sync
+dd bs=4M if=nixos-minimal-*.iso of=/dev/sdX status=progress oflag=sync
 ```
 
-## 2. Boot the installer
+### 2. Boot and connect to WiFi
 
-Reboot, mash F12 for boot menu, pick USB.
-
-You'll land in a root shell. Connect to WiFi:
-
-Prepare `iwd` (available in the installer too):
+Boot from USB (F12 for boot menu on XPS 15).
 
 ```sh
 iwctl
 [iwd]# station wlan0 scan
 [iwd]# station wlan0 get-networks
-[iwd]# station wlan0 connect YourSSID
+[iwd]# station wlan0 connect <SSID>
 ```
 
 Verify: `ping nixos.org`
 
-## 3. Partition
-
-Your current disk layout (from fstab):
-
-| Mount    | FS   | UUID              |
-|----------|------|-------------------|
-| `/`      | ext4 | `1ac6e3de-...`    |
-| `/boot/efi` | vfat | `5646-BF32`   |
-| swap     | swap | `39cde381-...`    |
-
-### Option A: Reuse existing partitions (if dual-boot / keeping data)
+### 3. Partition
 
 ```sh
-# Find your partitions
 lsblk -f
-
-# Format root (THIS WIPES ARCH)
-mkfs.ext4 -L nixos /dev/nvme0n1pX
-
-# Mount
-mount /dev/nvme0n1pX /mnt
-mkdir -p /mnt/boot/efi
-mount /dev/nvme0n1pY /mnt/boot/efi
-swapon /dev/nvme0n1pZ
 ```
 
-### Option B: Fresh partition table
+#### Option A: fresh partition table
 
 ```sh
-# Wipe and repartition
 fdisk /dev/nvme0n1
 
-# Create:
-# 1. EFI partition  (512M, type EFI System)
-# 2. Swap partition (16G or match your RAM)
-# 3. Root partition (rest of disk, type Linux filesystem)
+# 1. EFI System partition — 512M
+# 2. Linux swap — match your RAM
+# 3. Linux filesystem — rest of disk
 
 mkfs.fat -F 32 /dev/nvme0n1p1
 mkswap /dev/nvme0n1p2
@@ -122,261 +88,229 @@ mount /dev/nvme0n1p1 /mnt/boot/efi
 swapon /dev/nvme0n1p2
 ```
 
-## 4. Generate hardware config
+#### Option B: reuse existing partitions
+
+```sh
+mkfs.ext4 -L nixos /dev/nvme0n1pX    # formats root, wipes the old OS
+
+mount /dev/nvme0n1pX /mnt
+mkdir -p /mnt/boot/efi
+mount /dev/nvme0n1pY /mnt/boot/efi
+swapon /dev/nvme0n1pZ
+```
+
+### 4. Generate hardware config
 
 ```sh
 nixos-generate-config --root /mnt
 ```
 
-This creates:
+This produces `/mnt/etc/nixos/hardware-configuration.nix`. You need this
+file — it describes your specific disk UUIDs, kernel modules, and
+firmware. The generated `configuration.nix` next to it is not used.
 
-- `/mnt/etc/nixos/configuration.nix` (ignore this, we have our own)
-- `/mnt/etc/nixos/hardware-configuration.nix` (we need this)
-
-Copy it into your config structure:
-
-```sh
-mkdir -p /mnt/home/barrett/nix-config/hosts/xps15
-cp /mnt/etc/nixos/hardware-configuration.nix /mnt/home/barrett/nix-config/hosts/xps15/
-```
-
-## 5. Get your config onto the new system
-
-### Option A: Clone from git (needs network)
+### 5. Clone the repo
 
 ```sh
 nix-shell -p git
-git clone https://github.com/YOUR/nix-config /mnt/home/barrett/nix-config
-cp /mnt/etc/nixos/hardware-configuration.nix /mnt/home/barrett/nix-config/hosts/xps15/
+git clone https://github.com/barrettruth/nix-config /mnt/home/barrett/nix-config
 ```
 
-### Option B: Copy from USB
+Copy the hardware config into place:
 
 ```sh
-mount /dev/sdX1 /mnt2  # your usb
-cp -r /mnt2/nix-config /mnt/home/barrett/nix-config
 cp /mnt/etc/nixos/hardware-configuration.nix /mnt/home/barrett/nix-config/hosts/xps15/
 ```
 
-## 6. Install
+### 6. Copy fonts (optional, can be done later)
+
+Fonts are proprietary and not in the repo. The build will succeed
+without them — home-manager prints a warning and fonts fall back to
+system defaults. When you're ready, populate `~/nix-config/fonts/`:
+
+- Copy from a USB drive
+- Copy from a backup
+- Download from wherever you originally purchased them
+- Pull from another machine via scp
+
+```sh
+cp -r /path/to/your/fonts /mnt/home/barrett/nix-config/fonts/
+```
+
+The `fonts/` directory is gitignored and symlinked to
+`~/.local/share/fonts` at activation time.
+
+### 7. Install
 
 ```sh
 nixos-install --flake /mnt/home/barrett/nix-config#xps15
 ```
 
-It will:
+This builds the entire system (kernel, drivers, services, user
+environment, home-manager) in one shot. It will ask you to set the root
+password at the end.
 
-- Build the full system closure
-- Install GRUB
-- Ask you to set the root password
-
-This takes a while. Let it run.
-
-## 7. First boot
+### 8. Reboot and set user password
 
 ```sh
 reboot
 ```
 
-Remove the USB. GRUB should appear. Boot NixOS.
-
-Log in as root (password you just set), then set barrett's password:
+Remove the USB. Log in as root, then:
 
 ```sh
 passwd barrett
+logout
 ```
 
-Log out, log in as barrett.
+Log in as barrett.
 
-## 8. Post-install setup
+### 9. Fix ownership
 
-### Fix ownership
+The install created `~/nix-config` as root. Fix it:
 
 ```sh
 sudo chown -R barrett:users ~/nix-config
 ```
 
-### Home-manager (already integrated)
+### 10. Restore keys from Vaultwarden
 
-Your flake uses `home-manager.nixosModules.home-manager` so HM is part of the
-system build. No separate `home-manager switch` needed — it all happens during
-`nixos-rebuild switch`.
+Open Zen browser and go to git.barrettruth.com. Log in with your
+master password. Open the vault entry containing your keys and download
+all attachments.
 
-### Restore secrets
+#### SSH keys
 
 ```sh
-# From USB or wherever you backed up
-cp -r /path/to/gnupg-backup ~/.gnupg
-chmod 700 ~/.gnupg
-chmod 600 ~/.gnupg/*
+mkdir -p ~/.ssh
+cp ~/Downloads/id_ed25519 ~/.ssh/
+cp ~/Downloads/id_ed25519.pub ~/.ssh/
+cp ~/Downloads/git-keypair.pem ~/.ssh/
+cp ~/Downloads/git-keypair-old.pem ~/.ssh/
+```
 
-cp -r /path/to/ssh-backup ~/.ssh
+Permissions are fixed automatically by the activation script in
+`git.nix` on the next rebuild. If you want them right now:
+
+```sh
 chmod 700 ~/.ssh
-chmod 600 ~/.ssh/*
-
-cp -r /path/to/pass-backup ~/.local/share/pass
+chmod 600 ~/.ssh/id_ed25519 ~/.ssh/git-keypair.pem ~/.ssh/git-keypair-old.pem
+chmod 644 ~/.ssh/id_ed25519.pub
 ```
 
-### Restore fonts
+Set the repo remote to SSH for push access:
 
 ```sh
-mkdir -p ~/.local/share/fonts
-tar xf /path/to/fonts.tar -C /
-fc-cache -fv
+cd ~/nix-config
+git remote set-url origin git@github.com:barrettruth/nix-config.git
 ```
 
-### Restore images
+#### GPG key
 
 ```sh
-tar xf /path/to/img.tar -C /
+gpg --import ~/Downloads/gpg-private.asc
+gpg --edit-key A6C96C9349D2FC81 trust
 ```
 
-### Restore browser profile
+Select trust level 5 (ultimate), then `quit`. The key ID matches what's
+in `git.nix`, so git signing works immediately.
 
-```sh
-tar xf /path/to/zen.tar -C /
-```
+#### Clean up
 
-### Rebuild (the main command going forward)
+Delete the downloaded key files from `~/Downloads/`.
+
+### 11. Rebuild
+
+After all manual steps are done:
 
 ```sh
 sudo nixos-rebuild switch --flake ~/nix-config#xps15
 ```
 
-## 9. Gaps — things still needed in configuration.nix
+### 12. Verify
 
-Your `configuration.nix` already covers: GRUB, nvidia, iwd, keyd, pipewire,
-docker, libvirtd, openssh, hyprland, bluetooth, zsh, xdg portals.
+- Terminal opens (ghostty)
+- Neovim works and plugins install on first launch
+- Browser opens (zen)
+- Waybar shows at top
+- Audio works (XF86 keys)
+- Git push works (SSH)
+- Git commits are signed (GPG)
 
-Still missing:
+## What's automated vs. what's manual
 
-### Must add
+### Automated (handled by the flake)
 
-```nix
-# /bin/sh = dash (you have a pacman hook for this on Arch)
-environment.binsh = "${pkgs.dash}/bin/dash";
+- All packages and their exact versions
+- Zsh, tmux, fzf, direnv, lf configuration
+- Ghostty terminal configuration
+- Hyprland, waybar, rofi, dunst, hypridle, hyprlock, hyprpaper
+- Git config, aliases, ignore patterns
+- SSH config (host definitions, not keys)
+- GPG agent config (not the keys themselves)
+- Keyd keyboard remapping
+- NVIDIA drivers and prime offload
+- Pipewire audio stack
+- Docker and libvirt
+- Systemd services and timers
+- XDG directories and MIME associations
+- Scripts symlinked to ~/.local/bin/scripts
+- Directory creation (~/dev, ~/dl, ~/img, ~/wp)
+- Cloning this repo to ~/nix-config on first activation
+- Wallpaper symlinks from the repo to ~/img/screen
+- Daily flake input updates
 
-# doas (you use this instead of sudo on Arch)
-security.doas = {
-  enable = true;
-  extraRules = [{
-    groups = [ "wheel" ];
-    persist = true;
-  }];
-};
+### Manual (you must do these yourself)
 
-# Auto timezone (replaces your tzupdate timer)
-services.automatic-timezoned.enable = true;
-# (already in your config, just confirming)
+- Flash and boot the installer
+- Partition and mount disks
+- Generate hardware-configuration.nix
+- Set root and user passwords
+- Restore SSH keys, GPG key, and .pem files from Vaultwarden
+- Copy fonts into nix-config/fonts/ (optional, can be done later)
+- Restore browser profile (~/.zen) if you want tabs/extensions back
 
-# Multilib equivalent — enable 32-bit support for Steam/Wine if needed
-# hardware.graphics.enable32Bit = true;
-```
-
-### Should add
-
-```nix
-# Reflector equivalent — NixOS handles mirrors differently, but you may want
-# to pin a substituter or add cachix
-nix.settings = {
-  experimental-features = [ "nix-command" "flakes" ];
-  # already there, just noting
-};
-
-# geoclue for timezone detection
-services.geoclue2.enable = true;
-
-# X11 session (spectrwm/dwm) — if you want to keep X11 as an option
-services.xserver = {
-  enable = true;
-  videoDrivers = [ "nvidia" ];
-  windowManager.spectrwm.enable = true;
-  # or just use xinit manually
-};
-
-# Fonts — system-wide
-fonts.packages = with pkgs; [
-  jetbrains-mono
-  joypixels
-  font-awesome
-  # Your custom fonts (berkeley-mono etc) aren't in nixpkgs,
-  # keep them in ~/.local/share/fonts
-];
-
-# Yubikey / smartcard
-services.pcscd.enable = true;
-
-# QEMU/KVM
-virtualisation.libvirtd.qemu.package = pkgs.qemu_full;
-
-# Firewall (you have iptables on Arch)
-networking.firewall.enable = true;
-```
-
-### Packages to add to environment.systemPackages or HM
-
-Compare your 207 explicit Arch packages against what's in
-`home/modules/packages.nix`. The big categories not yet covered:
-
-- **TeX**: texlive, biber, typst, quarto — add to HM packages
-- **Languages**: rustup, go, ocaml, opam, uv, luarocks — add to HM packages
-  (or use devShells per-project)
-- **Dev tools**: cmake, ninja, gdb, valgrind, perf — add to HM or devShells
-- **CLI**: fastfetch, socat, rsync, bind (dig), time — add to HM packages
-- **AUR equivalents**: pikaur (not needed), sioyek (already in HM),
-  basedpyright, pistol, clipmenu (not needed on Wayland)
-
-### Things you DON'T need on NixOS
-
-- pacman hooks (dash, nvidia) — use NixOS options instead
-- pikaur/AUR — use nixpkgs, overlays, or flake inputs
-- reflector — not applicable
-- mkinitcpio — NixOS uses its own initrd builder
-- GRUB manual config — declarative via `boot.loader.grub`
-
-## 10. Day-to-day workflow
+## Day-to-day
 
 ```sh
-# Edit config
-nvim ~/nix-config/hosts/xps15/configuration.nix
-# or any home-manager module
-nvim ~/nix-config/home/modules/shell.nix
-
-# Rebuild
+# edit config, rebuild
 sudo nixos-rebuild switch --flake ~/nix-config#xps15
 
-# Update all inputs
+# update all inputs (nixpkgs, home-manager, etc.)
 nix flake update --flake ~/nix-config
 sudo nixos-rebuild switch --flake ~/nix-config#xps15
 
-# Rollback if something breaks
+# rollback
 sudo nixos-rebuild switch --flake ~/nix-config#xps15 --rollback
-# or pick a previous generation from GRUB
+# or pick a previous generation from GRUB at boot
 
-# Garbage collect old generations
+# garbage collect old generations
 sudo nix-collect-garbage -d
+
+# home-manager is integrated into nixos-rebuild, no separate command needed
 ```
 
-## 11. Checklist
+## Architecture
 
-- [ ] Back up gnupg, ssh, pass, fonts, img, zen profile
-- [ ] Push nix-config repo
-- [ ] Flash NixOS minimal ISO to USB
-- [ ] Boot USB, connect WiFi
-- [ ] Partition and mount
-- [ ] Generate hardware-configuration.nix
-- [ ] Get nix-config onto /mnt
-- [ ] `nixos-install --flake /mnt/home/barrett/nix-config#xps15`
-- [ ] Set root password, reboot
-- [ ] Set barrett password, log in
-- [ ] Fix nix-config ownership
-- [ ] Restore secrets (gnupg, ssh, pass)
-- [ ] Restore fonts, images, browser profile
-- [ ] `sudo nixos-rebuild switch --flake ~/nix-config#xps15`
-- [ ] Verify: terminal, editor, browser, WM all working
-- [ ] Add missing packages to configuration.nix / HM modules
-- [ ] Add `environment.binsh = dash`
-- [ ] Add doas config
-- [ ] Add fonts.packages
-- [ ] Add pcscd for Yubikey
-- [ ] Commit hardware-configuration.nix
+```
+flake.nix
+  inputs: nixpkgs, home-manager, nixos-hardware, neovim-nightly,
+          zen-browser, claude-code
+
+  nixosConfigurations.xps15          # sudo nixos-rebuild switch --flake .#xps15
+    hosts/xps15/configuration.nix    #   boot, hardware, networking, services, users
+    hosts/xps15/hardware-configuration.nix  # machine-specific (not committed)
+    home-manager (embedded)          #   user env built as part of system
+      home/home.nix                  #   imports all modules below
+        modules/bootstrap.nix        #     mkdir, clone repo, link wallpapers
+        modules/theme.nix            #     midnight/daylight color palettes, fonts, cursor
+        modules/shell.nix            #     zsh, tmux, lf, fzf, direnv, ripgrep, fd, eza
+        modules/terminal.nix         #     ghostty
+        modules/git.nix              #     git, gh, ssh hosts, gpg agent
+        modules/editor.nix           #     neovim (config is out-of-store symlink)
+        modules/ui.nix               #     hyprland, waybar, rofi, dunst, hyprlock
+        modules/packages.nix         #     apps (zen, signal, slack, etc.)
+
+  homeConfigurations.barrett         # home-manager switch --flake .#barrett
+    (same home/home.nix, for non-NixOS systems)
+```

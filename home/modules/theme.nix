@@ -1,4 +1,4 @@
-{ lib, config, pkgs, fonts, ... }:
+{ lib, config, pkgs, ... }:
 
 let
   palettes = {
@@ -57,6 +57,15 @@ in {
       x11.enable = true;
     };
 
-    home.file.".local/share/fonts".source = fonts;
+    home.file.".local/share/fonts".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/fonts";
+
+    home.activation.checkFonts = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      if [ ! -d "${config.home.homeDirectory}/nix-config/fonts" ] || \
+         [ -z "$(ls -A "${config.home.homeDirectory}/nix-config/fonts" 2>/dev/null)" ]; then
+        echo "WARNING: ~/nix-config/fonts is missing or empty — fonts will not be available"
+        echo "         copy your fonts into ~/nix-config/fonts/ and rebuild"
+      fi
+    '';
   };
 }
