@@ -31,11 +31,10 @@ in
     targets.genericLinux.enable = !isNixOS;
     news.display = "silent";
 
-    home.file.".local/bin/scripts" = {
-      source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/scripts";
-      recursive = false;
-      executable = true;
-    };
+    home.activation.linkScripts = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      $DRY_RUN_CMD mkdir -p "${config.home.homeDirectory}/.local/bin"
+      $DRY_RUN_CMD ln -sfn "${config.home.homeDirectory}/nix-config/scripts" "${config.home.homeDirectory}/.local/bin/scripts"
+    '';
 
     programs.home-manager.enable = true;
 
