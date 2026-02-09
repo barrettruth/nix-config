@@ -13,26 +13,38 @@
     claude-code.url = "github:ryoppippi/claude-code-overlay";
   };
 
-  outputs = { nixpkgs, home-manager, nixos-hardware, neovim-nightly, zen-browser, claude-code, ... }:
+  outputs =
+    {
+      nixpkgs,
+      home-manager,
+      nixos-hardware,
+      neovim-nightly,
+      zen-browser,
+      claude-code,
+      ...
+    }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
         inherit system;
-        config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) [
-          "slack"
-          "claude-code"
-          "claude"
-          "nvidia-x11"
-          "nvidia-settings"
-          "apple_cursor"
-        ];
+        config.allowUnfreePredicate =
+          pkg:
+          builtins.elem (nixpkgs.lib.getName pkg) [
+            "slack"
+            "claude-code"
+            "claude"
+            "nvidia-x11"
+            "nvidia-settings"
+            "apple_cursor"
+          ];
         overlays = [
           neovim-nightly.overlays.default
           claude-code.overlays.default
         ];
       };
-    in {
-      formatter.${system} = pkgs.nixfmt;
+    in
+    {
+      formatter.${system} = pkgs.nixfmt-tree;
 
       nixosConfigurations.xps15 = nixpkgs.lib.nixosSystem {
         inherit system;
@@ -44,14 +56,16 @@
               neovim-nightly.overlays.default
               claude-code.overlays.default
             ];
-            nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) [
-              "slack"
-              "claude-code"
-              "claude"
-              "nvidia-x11"
-              "nvidia-settings"
-              "apple_cursor"
-            ];
+            nixpkgs.config.allowUnfreePredicate =
+              pkg:
+              builtins.elem (nixpkgs.lib.getName pkg) [
+                "slack"
+                "claude-code"
+                "claude"
+                "nvidia-x11"
+                "nvidia-settings"
+                "apple_cursor"
+              ];
           }
           home-manager.nixosModules.home-manager
           {

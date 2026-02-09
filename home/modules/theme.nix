@@ -1,4 +1,9 @@
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 
 let
   palettes = {
@@ -35,9 +40,13 @@ let
       activityFg = "#3b5bdb";
     };
   };
-in {
+in
+{
   options.theme = lib.mkOption {
-    type = lib.types.enum [ "midnight" "daylight" ];
+    type = lib.types.enum [
+      "midnight"
+      "daylight"
+    ];
     default = "midnight";
   };
 

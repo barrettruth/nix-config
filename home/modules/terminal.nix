@@ -2,7 +2,8 @@
 
 let
   c = config.colors;
-in {
+in
+{
   home.sessionVariables = {
     TERMINAL = "ghostty";
     TERM = "xterm-ghostty";

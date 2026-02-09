@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 let
   c = config.colors;
@@ -15,7 +20,8 @@ let
   aws = true;
   psql = true;
   sqlite = true;
-in {
+in
+{
   home.packages = with pkgs; [
     pure-prompt
     xclip
@@ -225,7 +231,8 @@ in {
       zle -N fzf-config-widget
       bindkey '^E' fzf-config-widget
 
-    '' + lib.optionalString ocaml ''
+    ''
+    + lib.optionalString ocaml ''
       [[ ! -r "$OPAMROOT/opam-init/init.zsh" ]] || source "$OPAMROOT/opam-init/init.zsh" > /dev/null 2> /dev/null
     '';
   };
@@ -452,42 +459,48 @@ in {
     };
 
     commands = {
-      open = ''$${{
-        setsid -f xdg-open "$f" 2>/dev/null 2>&1 &
-      }}'';
-      sopen = ''$${{
-        for f in $fx; do
-           setsid -f xdg-open "$f" >/dev/null 2>&1 &
-        done
-      }}'';
-      rmd = ''$${{
-        set -f
-        while IFS= read -r dir; do
-            rmdir -v -- "$dir"
-        done <<< "$fx"
-      }}'';
-      rmf = ''$${{
-        set -f
-        while IFS= read -r file; do
-            rm -v -- "$file"
-        done <<< "$fx"
-      }}'';
-      resize = ''%{{
-        w=$(tmux display-message -p '#{pane_width}' || tput cols)
-        if [ $w -le 62 ]; then
-            lf -remote "send $id set ratios 1:4"
-            lf -remote "send $id set nopreview"
-        elif [ $w -le 80 ]; then
-            lf -remote "send $id set ratios 1:2:2"
-        elif [ $w -le 100 ]; then
-            lf -remote "send $id set ratios 1:2:3"
-        else
-            lf -remote "send $id set ratios 2:4:5"
-        fi
-      }}'';
-      on-init = ''%{{
-        lf -remote "send $id resize"
-      }}'';
+      open = ''
+        $${{
+                setsid -f xdg-open "$f" 2>/dev/null 2>&1 &
+              }}'';
+      sopen = ''
+        $${{
+                for f in $fx; do
+                   setsid -f xdg-open "$f" >/dev/null 2>&1 &
+                done
+              }}'';
+      rmd = ''
+        $${{
+                set -f
+                while IFS= read -r dir; do
+                    rmdir -v -- "$dir"
+                done <<< "$fx"
+              }}'';
+      rmf = ''
+        $${{
+                set -f
+                while IFS= read -r file; do
+                    rm -v -- "$file"
+                done <<< "$fx"
+              }}'';
+      resize = ''
+        %{{
+                w=$(tmux display-message -p '#{pane_width}' || tput cols)
+                if [ $w -le 62 ]; then
+                    lf -remote "send $id set ratios 1:4"
+                    lf -remote "send $id set nopreview"
+                elif [ $w -le 80 ]; then
+                    lf -remote "send $id set ratios 1:2:2"
+                elif [ $w -le 100 ]; then
+                    lf -remote "send $id set ratios 1:2:3"
+                else
+                    lf -remote "send $id set ratios 2:4:5"
+                fi
+              }}'';
+      on-init = ''
+        %{{
+                lf -remote "send $id resize"
+              }}'';
     };
 
     keybindings = {
@@ -517,6 +530,8 @@ in {
     source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/config/lf/cleaner";
   };
 
-  xdg.configFile."lf/lf.lua".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/config/lf/lf.lua";
-  xdg.configFile."lf/sort.py".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/config/lf/sort.py";
+  xdg.configFile."lf/lf.lua".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/config/lf/lf.lua";
+  xdg.configFile."lf/sort.py".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/config/lf/sort.py";
 }

@@ -1,4 +1,11 @@
-{ pkgs, lib, config, zen-browser, hostPlatform, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  zen-browser,
+  hostPlatform,
+  ...
+}:
 
 let
   enableClaude = true;
@@ -6,22 +13,25 @@ let
   enableSioyek = true;
   enableVesktop = true;
   enableNeovim = config.programs.neovim.enable;
-in {
+in
+{
   home.sessionVariables = lib.optionalAttrs enableZen {
     BROWSER = "zen-browser";
   };
 
   programs.mpv.enable = true;
 
-  home.packages = with pkgs; [
-    signal-desktop
-    slack
-    bitwarden-desktop
-  ]
-  ++ lib.optionals enableClaude [ claude-code ]
-  ++ lib.optionals enableZen [ zen-browser.packages.${hostPlatform}.default ]
-  ++ lib.optionals enableSioyek [ sioyek ]
-  ++ lib.optionals enableVesktop [ vesktop ];
+  home.packages =
+    with pkgs;
+    [
+      signal-desktop
+      slack
+      bitwarden-desktop
+    ]
+    ++ lib.optionals enableClaude [ claude-code ]
+    ++ lib.optionals enableZen [ zen-browser.packages.${hostPlatform}.default ]
+    ++ lib.optionals enableSioyek [ sioyek ]
+    ++ lib.optionals enableVesktop [ vesktop ];
 
   xdg.configFile."claude/settings.json" = lib.mkIf enableClaude {
     text = builtins.toJSON {
@@ -86,21 +96,22 @@ in {
 
   xdg.mimeApps = {
     enable = true;
-    defaultApplications = {}
-    // lib.optionalAttrs enableZen {
-      "x-scheme-handler/http" = "zen.desktop";
-      "x-scheme-handler/https" = "zen.desktop";
-      "text/html" = "zen.desktop";
-    }
-    // lib.optionalAttrs enableNeovim {
-      "text/plain" = "nvim.desktop";
-    }
-    // lib.optionalAttrs enableSioyek {
-      "application/pdf" = "sioyek.desktop";
-      "application/epub" = "sioyek.desktop";
-    }
-    // lib.optionalAttrs enableVesktop {
-      "x-scheme-handler/discord" = "vesktop.desktop";
-    };
+    defaultApplications =
+      { }
+      // lib.optionalAttrs enableZen {
+        "x-scheme-handler/http" = "zen.desktop";
+        "x-scheme-handler/https" = "zen.desktop";
+        "text/html" = "zen.desktop";
+      }
+      // lib.optionalAttrs enableNeovim {
+        "text/plain" = "nvim.desktop";
+      }
+      // lib.optionalAttrs enableSioyek {
+        "application/pdf" = "sioyek.desktop";
+        "application/epub" = "sioyek.desktop";
+      }
+      // lib.optionalAttrs enableVesktop {
+        "x-scheme-handler/discord" = "vesktop.desktop";
+      };
   };
 }

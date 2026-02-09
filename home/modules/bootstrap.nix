@@ -1,11 +1,23 @@
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 
 let
   homeDir = config.home.homeDirectory;
   repoDir = "${homeDir}/nix-config";
 
-  directories = [ "dev" "dl" "img" "img/screen" "wp" ];
-in {
+  directories = [
+    "dev"
+    "dl"
+    "img"
+    "img/screen"
+    "wp"
+  ];
+in
+{
   home.activation.createDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     for dir in ${lib.concatStringsSep " " directories}; do
       $DRY_RUN_CMD mkdir -p "$HOME/$dir"

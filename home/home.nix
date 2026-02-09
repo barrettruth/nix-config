@@ -1,8 +1,14 @@
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 
 let
   isNixOS = builtins.pathExists /etc/NIXOS;
-in {
+in
+{
   imports = [
     ./modules/bootstrap.nix
     ./modules/theme.nix

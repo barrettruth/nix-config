@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 let
   isNixOS = builtins.pathExists /etc/NIXOS;
@@ -6,7 +11,8 @@ let
 
   nvidia = true;
   backlightDevice = "intel_backlight";
-in {
+in
+{
   home.packages = with pkgs; [
     wl-clipboard
     cliphist
@@ -42,7 +48,8 @@ in {
       env = QT_QPA_PLATFORM,wayland
       env = GDK_BACKEND,wayland,x11
       env = SDL_VIDEODRIVER,wayland
-    '' + lib.optionalString nvidia ''
+    ''
+    + lib.optionalString nvidia ''
       env = LIBVA_DRIVER_NAME,nvidia
       env = __GLX_VENDOR_LIBRARY_NAME,nvidia
       env = NVD_BACKEND,direct
@@ -50,15 +57,18 @@ in {
       env = GSK_RENDERER,ngl
       env = __NV_PRIME_RENDER_OFFLOAD,1
       env = __VK_LAYER_NV_optimus,NVIDIA_only
-    '' + ''
+    ''
+    + ''
 
       env = XCURSOR_SIZE,24
       env = HYPRCURSOR_SIZE,24
-    '' + lib.optionalString nvidia ''
+    ''
+    + lib.optionalString nvidia ''
       cursor {
           no_hardware_cursors = true
       }
-    '' + ''
+    ''
+    + ''
 
       general {
           gaps_in = 0
@@ -249,10 +259,12 @@ in {
         hide_cursor = true;
         grace = 0;
       };
-      background = [{
-        monitor = "";
-        path = "~/img/screen/lock.jpg";
-      }];
+      background = [
+        {
+          monitor = "";
+          path = "~/img/screen/lock.jpg";
+        }
+      ];
       animations.enabled = false;
     };
   };
@@ -275,9 +287,18 @@ in {
       exclusive = true;
       height = 34;
 
-      modules-left = [ "hyprland/workspaces" "hyprland/window" ];
-      modules-center = [];
-      modules-right = [ "backlight" "pulseaudio" "network" "battery" "clock" ];
+      modules-left = [
+        "hyprland/workspaces"
+        "hyprland/window"
+      ];
+      modules-center = [ ];
+      modules-right = [
+        "backlight"
+        "pulseaudio"
+        "network"
+        "battery"
+        "clock"
+      ];
 
       "hyprland/workspaces" = {
         disable-scroll = true;
@@ -300,7 +321,7 @@ in {
         format = " {} [{}]";
         separate-outputs = true;
         max-length = 80;
-        rewrite = {};
+        rewrite = { };
       };
 
       pulseaudio = {
@@ -405,73 +426,80 @@ in {
     extraConfig = {
       show-icons = false;
     };
-    theme = let
-      inherit (config.lib.formats.rasi) mkLiteral;
-    in {
-      "*" = {
-        selected-normal-foreground = mkLiteral "${c.fg}";
-        foreground = mkLiteral "${c.fg}";
-        normal-foreground = mkLiteral "@foreground";
-        alternate-normal-background = mkLiteral "${c.bg}";
-        background = mkLiteral "${c.bgAlt}";
-        alternate-normal-foreground = mkLiteral "@foreground";
-        normal-background = mkLiteral "@background";
-        selected-normal-background = mkLiteral "${c.accent}";
-        border-color = mkLiteral "${c.fgAlt}";
-        spacing = 2;
-        separatorcolor = mkLiteral "@foreground";
-        background-color = mkLiteral "rgba ( 0, 0, 0, 0 % )";
+    theme =
+      let
+        inherit (config.lib.formats.rasi) mkLiteral;
+      in
+      {
+        "*" = {
+          selected-normal-foreground = mkLiteral "${c.fg}";
+          foreground = mkLiteral "${c.fg}";
+          normal-foreground = mkLiteral "@foreground";
+          alternate-normal-background = mkLiteral "${c.bg}";
+          background = mkLiteral "${c.bgAlt}";
+          alternate-normal-foreground = mkLiteral "@foreground";
+          normal-background = mkLiteral "@background";
+          selected-normal-background = mkLiteral "${c.accent}";
+          border-color = mkLiteral "${c.fgAlt}";
+          spacing = 2;
+          separatorcolor = mkLiteral "@foreground";
+          background-color = mkLiteral "rgba ( 0, 0, 0, 0 % )";
+        };
+        window = {
+          background-color = mkLiteral "@background";
+          border = 1;
+          padding = 5;
+        };
+        mainbox = {
+          border = 0;
+          padding = 0;
+        };
+        listview = {
+          fixed-height = 0;
+          border = mkLiteral "2px 0px 0px";
+          border-color = mkLiteral "@separatorcolor";
+          spacing = mkLiteral "2px";
+          scrollbar = false;
+          padding = mkLiteral "2px 0px 0px";
+        };
+        element = {
+          border = 0;
+          padding = mkLiteral "1px";
+        };
+        element-text = {
+          background-color = mkLiteral "inherit";
+          text-color = mkLiteral "inherit";
+        };
+        "element.normal.normal" = {
+          background-color = mkLiteral "@normal-background";
+          text-color = mkLiteral "@normal-foreground";
+        };
+        "element.selected.normal" = {
+          background-color = mkLiteral "@selected-normal-background";
+          text-color = mkLiteral "@selected-normal-foreground";
+        };
+        "element.alternate.normal" = {
+          background-color = mkLiteral "@alternate-normal-background";
+          text-color = mkLiteral "@alternate-normal-foreground";
+        };
+        inputbar = {
+          spacing = 0;
+          text-color = mkLiteral "@normal-foreground";
+          padding = mkLiteral "1px";
+          children = map mkLiteral [
+            "prompt"
+            "textbox-prompt-colon"
+            "entry"
+            "case-indicator"
+          ];
+        };
+        textbox-prompt-colon = {
+          expand = false;
+          str = ":";
+          margin = mkLiteral "0px 0.3em 0em 0em";
+          text-color = mkLiteral "@normal-foreground";
+        };
       };
-      window = {
-        background-color = mkLiteral "@background";
-        border = 1;
-        padding = 5;
-      };
-      mainbox = {
-        border = 0;
-        padding = 0;
-      };
-      listview = {
-        fixed-height = 0;
-        border = mkLiteral "2px 0px 0px";
-        border-color = mkLiteral "@separatorcolor";
-        spacing = mkLiteral "2px";
-        scrollbar = false;
-        padding = mkLiteral "2px 0px 0px";
-      };
-      element = {
-        border = 0;
-        padding = mkLiteral "1px";
-      };
-      element-text = {
-        background-color = mkLiteral "inherit";
-        text-color = mkLiteral "inherit";
-      };
-      "element.normal.normal" = {
-        background-color = mkLiteral "@normal-background";
-        text-color = mkLiteral "@normal-foreground";
-      };
-      "element.selected.normal" = {
-        background-color = mkLiteral "@selected-normal-background";
-        text-color = mkLiteral "@selected-normal-foreground";
-      };
-      "element.alternate.normal" = {
-        background-color = mkLiteral "@alternate-normal-background";
-        text-color = mkLiteral "@alternate-normal-foreground";
-      };
-      inputbar = {
-        spacing = 0;
-        text-color = mkLiteral "@normal-foreground";
-        padding = mkLiteral "1px";
-        children = map mkLiteral [ "prompt" "textbox-prompt-colon" "entry" "case-indicator" ];
-      };
-      textbox-prompt-colon = {
-        expand = false;
-        str = ":";
-        margin = mkLiteral "0px 0.3em 0em 0em";
-        text-color = mkLiteral "@normal-foreground";
-      };
-    };
   };
 
   services.dunst = {
@@ -502,5 +530,6 @@ in {
       };
     };
   };
-  xdg.configFile."X11".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/config/X11";
+  xdg.configFile."X11".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/config/X11";
 }

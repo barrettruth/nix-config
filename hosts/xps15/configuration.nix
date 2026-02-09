@@ -15,7 +15,12 @@
   };
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.efi.efiSysMountPoint = "/boot/efi";
-  boot.kernelParams = [ "nvidia-drm.modeset=1" "ibt=off" "loglevel=3" "quiet" ];
+  boot.kernelParams = [
+    "nvidia-drm.modeset=1"
+    "ibt=off"
+    "loglevel=3"
+    "quiet"
+  ];
 
   networking.hostName = "xps15";
   networking.wireless.iwd = {
@@ -31,22 +36,30 @@
   services.pcscd.enable = true;
   i18n.defaultLocale = "en_US.UTF-8";
 
-  security.pam.services.hyprlock = {};
+  security.pam.services.hyprlock = { };
 
   security.doas = {
     enable = true;
-    extraRules = [{
-      groups = [ "wheel" ];
-      persist = true;
-      keepEnv = true;
-    }];
+    extraRules = [
+      {
+        groups = [ "wheel" ];
+        persist = true;
+        keepEnv = true;
+      }
+    ];
   };
 
   environment.binsh = "${pkgs.dash}/bin/dash";
 
   users.users.barrett = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "docker" "libvirt" "storage" "power" ];
+    extraGroups = [
+      "wheel"
+      "docker"
+      "libvirt"
+      "storage"
+      "power"
+    ];
     shell = pkgs.zsh;
   };
 
@@ -119,7 +132,10 @@
     dmidecode
   ];
 
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   system.stateVersion = "24.11";
 }
