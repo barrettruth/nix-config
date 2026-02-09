@@ -1,1 +1,109 @@
-/nix/store/i53klf9mw9p2k5nfawr6r2b0v3jyq1si-home-manager-files/.local/bin/scripts/ctl
+#!/bin/sh
+
+require() {
+  for cmd in "$@"; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+      echo "ctl: missing dependency: $cmd" >&2
+      exit 1
+    }
+  done
+}
+
+case "$1" in
+screenshot)
+  dir="$HOME/img/ss"
+  mkdir -p "$dir"
+  file="$dir/$(openssl rand -hex 10)-$(date +'%Y-%m-%d_%H-%M-%S').png"
+  if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+    require grim slurp wl-copy
+    grim -g "$(slurp)" "$file" && wl-copy < "$file"
+  else
+    require maim xclip
+    maim -s "$file" && xclip -selection clipboard -t image/png -i "$file" &
+  fi
+  ;;
+ocr)
+  require tesseract
+  dir="$HOME/img/ss"
+  mkdir -p "$dir"
+  file="$dir/$(openssl rand -hex 10)-$(date +'%Y-%m-%d_%H-%M-%S').png"
+  if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+    require grim slurp wl-copy
+    (
+      region="$(slurp)"
+      [ -n "$region" ] || exit 0
+      grim -g "$region" "$file" &&
+      tesseract -l eng "$file" - 2>/dev/null | wl-copy
+    ) </dev/null >/dev/null 2>&1 &
+  else
+    require maim xclip
+    (
+      maim -s "$file" &&
+      tesseract -l eng "$file" - 2>/dev/null | xclip -selection clipboard -in
+    ) </dev/null >/dev/null 2>&1 &
+  fi
+  ;;
+keyboard)
+  case "$2" in
+  toggle)
+    if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+      if [ "$XDG_CURRENT_DESKTOP" = "Hyprland" ]; then
+        hyprctl switchxkblayout current next
+      elif [ "$XDG_CURRENT_DESKTOP" = "sway" ]; then
+        if swaymsg -t get_inputs | grep -qi "Colemak"; then
+          swaymsg input type:keyboard xkb_variant "''"
+        else
+          swaymsg input type:keyboard xkb_variant colemak
+        fi
+      fi
+    else
+      current="$(setxkbmap -query | awk '/variant/{print $2}')"
+      if [ "$current" = "colemak" ]; then
+        setxkbmap -layout us
+      else
+        setxkbmap -layout us -variant colemak
+      fi
+    fi
+    ;;
+  *)
+    echo "Usage: ctl keyboard {toggle}" >&2
+    exit 1
+    ;;
+  esac
+  ;;
+audio)
+  require pactl
+  case "$2" in
+  out)
+    sinks="$(pactl list short sinks | awk '{print $1": "$2}')"
+    [ -z "$sinks" ] && exit 0
+    count="$(printf "%s\n" "$sinks" | wc -l)"
+    if [ "$XDG_SESSION_TYPE" = x11 ]; then
+      choice="$(printf "%s\n" "$sinks" | dmenu -i -l "$count" -p "select sink:" | cut -d: -f1)"
+    else
+      choice="$(printf "%s\n" "$sinks" | rofi -dmenu -i -lines "$count" -p "select sink" | cut -d: -f1)"
+    fi
+    [ "$choice" ] && pactl set-default-sink "$choice"
+    ;;
+  in)
+    sources="$(pactl list short sources | awk '{print $1": "$2}')"
+    [ -z "$sources" ] && exit 0
+    count="$(printf "%s\n" "$sources" | wc -l)"
+    if [ "$XDG_SESSION_TYPE" = x11 ]; then
+      choice="$(printf "%s\n" "$sources" | dmenu -i -l "$count" -p "select source:" | cut -d: -f1)"
+    else
+      choice="$(printf "%s\n" "$sources" | rofi -dmenu -i -lines "$count" -p "select source" | cut -d: -f1)"
+    fi
+    [ "$choice" ] && pactl set-default-source "$choice"
+    ;;
+  *)
+    echo "Usage: ctl audio {in|out}" >&2
+    exit 1
+    ;;
+  esac
+  ;;
+*)
+  echo "Usage: ctl {screenshot|ocr|keyboard|audio}" >&2
+  exit 1
+  ;;
+esac

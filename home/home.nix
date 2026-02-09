@@ -32,8 +32,8 @@ in
     news.display = "silent";
 
     home.file.".local/bin/scripts" = {
-      source = ../scripts;
-      recursive = true;
+      source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/scripts";
+      recursive = false;
       executable = true;
     };
 
