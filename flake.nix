@@ -57,7 +57,8 @@
             home-manager.useUserPackages = true;
             home-manager.users.barrett = import ./home/home.nix;
             home-manager.extraSpecialArgs = {
-              inherit zen-browser system;
+              inherit zen-browser;
+              hostPlatform = system;
             };
           }
         ];
@@ -69,7 +70,8 @@
       homeConfigurations.barrett = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         extraSpecialArgs = {
-          inherit zen-browser system;
+          inherit zen-browser;
+          hostPlatform = system;
         };
         modules = [ ./home/home.nix ];
       };

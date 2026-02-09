@@ -1,13 +1,13 @@
-{ pkgs, lib, config, zen-browser, system, ... }:
+{ pkgs, lib, config, zen-browser, hostPlatform, ... }:
 
 let
-  claude = true;
-  zen = true;
-  sioyek = true;
-  vesktop = true;
-  neovim = config.programs.neovim.enable;
+  enableClaude = true;
+  enableZen = true;
+  enableSioyek = true;
+  enableVesktop = true;
+  enableNeovim = config.programs.neovim.enable;
 in {
-  home.sessionVariables = lib.optionalAttrs zen {
+  home.sessionVariables = lib.optionalAttrs enableZen {
     BROWSER = "zen-browser";
   };
 
@@ -18,12 +18,12 @@ in {
     slack
     bitwarden-desktop
   ]
-  ++ lib.optionals claude [ claude-code ]
-  ++ lib.optionals zen [ zen-browser.packages.${system}.default ]
-  ++ lib.optionals sioyek [ sioyek ]
-  ++ lib.optionals vesktop [ vesktop ];
+  ++ lib.optionals enableClaude [ claude-code ]
+  ++ lib.optionals enableZen [ zen-browser.packages.${hostPlatform}.default ]
+  ++ lib.optionals enableSioyek [ sioyek ]
+  ++ lib.optionals enableVesktop [ vesktop ];
 
-  xdg.configFile."claude/settings.json" = lib.mkIf claude {
+  xdg.configFile."claude/settings.json" = lib.mkIf enableClaude {
     text = builtins.toJSON {
       permissions.defaultMode = "acceptEdits";
       network_access = true;
@@ -36,7 +36,7 @@ in {
     };
   };
 
-  home.activation.linkZenProfile = lib.mkIf zen (
+  home.activation.linkZenProfile = lib.mkIf enableZen (
     lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       zen_config="$HOME/.zen"
       repo_zen="${config.home.homeDirectory}/nix-config/config/zen"
@@ -87,19 +87,19 @@ in {
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {}
-    // lib.optionalAttrs zen {
+    // lib.optionalAttrs enableZen {
       "x-scheme-handler/http" = "zen.desktop";
       "x-scheme-handler/https" = "zen.desktop";
       "text/html" = "zen.desktop";
     }
-    // lib.optionalAttrs neovim {
+    // lib.optionalAttrs enableNeovim {
       "text/plain" = "nvim.desktop";
     }
-    // lib.optionalAttrs sioyek {
+    // lib.optionalAttrs enableSioyek {
       "application/pdf" = "sioyek.desktop";
       "application/epub" = "sioyek.desktop";
     }
-    // lib.optionalAttrs vesktop {
+    // lib.optionalAttrs enableVesktop {
       "x-scheme-handler/discord" = "vesktop.desktop";
     };
   };
