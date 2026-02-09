@@ -31,8 +31,7 @@ in
     targets.genericLinux.enable = !isNixOS;
     news.display = "silent";
 
-    home.file.".local/bin/scripts".source =
-      config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nix-config/scripts";
+    home.sessionPath = [ "${config.home.homeDirectory}/nix-config/scripts" ];
 
     programs.home-manager.enable = true;
 
