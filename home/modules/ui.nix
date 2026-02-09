@@ -23,9 +23,9 @@ in
     pamixer
     socat
     (python3.withPackages (ps: [ ps.pillow ]))
-    xorg.xinit
-    xorg.xmodmap
-    xorg.xrdb
+    xinit
+    xmodmap
+    xrdb
   ];
 
   wayland.windowManager.hyprland = {
