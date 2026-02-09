@@ -39,22 +39,6 @@
         "type": "github"
       }
     },
-    "fonts": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1759511756,
-        "narHash": "sha256-auYJCZ7lOOIx7Zu4jeyXNczBxVVCWlFHVD7nnVQ0PCQ=",
-        "ref": "refs/heads/main",
-        "rev": "ebf1959cd6ec64320f372383ea8d19157cbf7e01",
-        "revCount": 3,
-        "type": "git",
-        "url": "ssh://git@github.com/barrettruth/fonts.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/barrettruth/fonts.git"
-      }
-    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -214,7 +198,6 @@
     "root": {
       "inputs": {
         "claude-code": "claude-code",
-        "fonts": "fonts",
         "home-manager": "home-manager",
         "neovim-nightly": "neovim-nightly",
         "nixos-hardware": "nixos-hardware",
