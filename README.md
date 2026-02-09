@@ -7,15 +7,28 @@ recovery, and key restore instructions.
 
 ## Day-to-day
 
+All commands assume you're in `~/nix-config`.
+
 ```sh
-sudo nixos-rebuild switch --flake ~/nix-config#xps15
+# rebuild after editing config
+sudo nixos-rebuild switch --flake .#xps15
 
-nix flake update --flake ~/nix-config
-sudo nixos-rebuild switch --flake ~/nix-config#xps15
+# update all flake inputs, then rebuild
+nix flake update
+sudo nixos-rebuild switch --flake .#xps15
 
-sudo nixos-rebuild switch --flake ~/nix-config#xps15 --rollback
+# rollback to previous generation
+sudo nixos-rebuild switch --flake .#xps15 --rollback
 
-sudo nix-collect-garbage -d
+# format all nix files
+nix fmt
+
+# garbage collect old generations + store
+sudo nix profile wipe-history --profile /nix/var/nix/profiles/system
+nix store gc
+
+# check flake for errors without building
+nix flake check
 ```
 
 ## Architecture

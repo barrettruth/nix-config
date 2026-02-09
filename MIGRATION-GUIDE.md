@@ -243,7 +243,8 @@ Delete the downloaded key files from `~/Downloads/`.
 After all manual steps are done:
 
 ```sh
-sudo nixos-rebuild switch --flake ~/nix-config#xps15
+cd ~/nix-config
+sudo nixos-rebuild switch --flake .#xps15
 ```
 
 ### 12. Verify
