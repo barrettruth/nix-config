@@ -47,11 +47,11 @@
       formatter.${system} = pkgs.nixfmt-tree;
 
       nixosConfigurations.xps15 = nixpkgs.lib.nixosSystem {
-        inherit system;
         modules = [
           nixos-hardware.nixosModules.dell-xps-15-9500-nvidia
           ./hosts/xps15/configuration.nix
           {
+            nixpkgs.hostPlatform = system;
             nixpkgs.overlays = [
               neovim-nightly.overlays.default
               claude-code.overlays.default
