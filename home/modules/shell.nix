@@ -171,6 +171,13 @@ in
       pe = "printenv";
     };
 
+    syntaxHighlighting.enable = true;
+
+    autosuggestion = {
+      enable = true;
+      strategy = [ "history" "completion" ];
+    };
+
     completionInit = ''
       autoload -U compinit && compinit -d "$XDG_STATE_HOME/zcompdump" -u
       zmodload zsh/complist
